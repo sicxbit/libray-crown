@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { useState } from "react";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import './index.css'; 
+
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);

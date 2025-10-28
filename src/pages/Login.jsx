@@ -1,49 +1,60 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase";
 
-export default function Login({ setIsAuthenticated }) {
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate();
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
 
-    const ADMIN_EMAIL = "techsupport@crowncaregivers.com";
-    const ADMIN_PASSWORD = "test1234"; // dummy password
-
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      localStorage.setItem("isAdmin", "true"); // persist login
-      navigate("/");
-    } else {
-      alert("Invalid email or password!");
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // Firebase automatically updates `App.jsx` state via onAuthStateChanged
+    } catch (err) {
+      console.error(err);
+      setError("Invalid email or password");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <form onSubmit={handleLogin} className="bg-white p-6 rounded shadow-md w-80">
-        <h2 className="text-xl font-bold mb-4 text-center">Admin Login</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <form onSubmit={handleLogin} className="bg-white p-6 rounded-lg shadow-md w-80">
+        <h2 className="text-xl font-semibold mb-4 text-center">Admin Login</h2>
+
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="border p-2 rounded w-full mb-2"
+          className="w-full border rounded px-3 py-2 mb-3"
+          required
         />
+
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="border p-2 rounded w-full mb-4"
+          className="w-full border rounded px-3 py-2 mb-3"
+          required
         />
+
+        {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
+
         <button
           type="submit"
-          className="bg-blue-600 text-white w-full py-2 rounded hover:bg-blue-700"
+          disabled={loading}
+          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
       </form>
     </div>

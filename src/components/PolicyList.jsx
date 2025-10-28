@@ -49,7 +49,7 @@ export default function PolicyList() {
       .replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-12 px-6">
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-12 px-6 w-full">
       <div className="w-full max-w-6xl bg-white shadow-lg border border-gray-300 rounded-lg p-6">
         {/* Search */}
         <div className="flex justify-end mb-6">

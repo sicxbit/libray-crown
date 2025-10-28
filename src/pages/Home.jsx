@@ -1,4 +1,5 @@
 import PolicyList from "../components/PolicyList";
+import PolicyUpload from "../components/PolicyUpload"
 
 export default function Home() {
   return (

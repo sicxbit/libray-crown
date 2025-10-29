@@ -1,22 +1,22 @@
-import React7, { useState } from "react";
+import React, { useState } from "react";
 import { uploadPolicy } from "../components/UploadPolicy";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { signOut } from "firebase/auth";
 import PolicyList from "../components/PolicyList";
 
-
 export default function AdminUpload() {
   const [policyName, setPolicyName] = useState("");
   const [policyAttribute, setPolicyAttribute] = useState("");
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0); 
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      navigate("/login"); 
+      navigate("/login");
     } catch (err) {
       console.error("❌ Logout failed:", err);
     }
@@ -24,13 +24,30 @@ export default function AdminUpload() {
 
   const handleUpload = async (e) => {
     e.preventDefault();
-    console.log("well this works")
+    if (!file || !policyName.trim()) {
+      setStatus("❌ Please fill all fields and choose a file.");
+      return;
+    }
+
+    setStatus("⏳ Uploading...");
     const result = await uploadPolicy(file, policyName, policyAttribute);
-    setStatus(result.success ? "✅ Uploaded!" : "❌ " + result.error);
+
+    if (result.success) {
+      setStatus("✅ Uploaded!");
+      // 🔹 Trigger PolicyList to refresh
+      setRefreshKey((prev) => prev + 1);
+
+      // Clear form
+      setFile(null);
+      setPolicyName("");
+      setPolicyAttribute("");
+    } else {
+      setStatus("❌ " + result.error);
+    }
   };
 
   return (
-     <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-gray-100 p-6">
       {/* Top Bar */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
@@ -41,41 +58,44 @@ export default function AdminUpload() {
           Logout
         </button>
       </div>
-    <form
-      onSubmit={handleUpload}
-      className="p-6 bg-white shadow-md rounded-lg max-w-md mx-auto mt-10 space-y-4"
-    >
-      <input
-        type="text"
-        placeholder="Policy Name"
-        value={policyName}
-        onChange={(e) => setPolicyName(e.target.value)}
-        className="border p-2 w-full rounded"
-      />
-      <input
-        type="text"
-        placeholder="Policy Attribute"
-        value={policyAttribute}
-        onChange={(e) => setPolicyAttribute(e.target.value)}
-        className="border p-2 w-full rounded"
-      />
-      <input
-        type="file"
-        accept=".pdf,.docx,.txt"
-        onChange={(e) => setFile(e.target.files[0])}
-        className="border p-2 w-full rounded"
-      />
-      <button
-        type="submit"
-        className="bg-blue-600 text-white py-2 w-full rounded hover:bg-blue-700"
+
+      <form
+        onSubmit={handleUpload}
+        className="p-6 bg-white shadow-md rounded-lg max-w-md mx-auto mt-10 space-y-4"
       >
-        Upload
-      </button>
-      {status && <p className="text-center mt-2">{status}</p>}
-    </form>
-    <div>
-      <PolicyList isAdmin={true} />
-    </div>
+        <input
+          type="text"
+          placeholder="Policy Name"
+          value={policyName}
+          onChange={(e) => setPolicyName(e.target.value)}
+          className="border p-2 w-full rounded"
+        />
+        <input
+          type="text"
+          placeholder="Policy Attribute"
+          value={policyAttribute}
+          onChange={(e) => setPolicyAttribute(e.target.value)}
+          className="border p-2 w-full rounded"
+        />
+        <input
+          type="file"
+          accept=".pdf,.docx,.txt"
+          onChange={(e) => setFile(e.target.files[0])}
+          className="border p-2 w-full rounded"
+        />
+        <button
+          type="submit"
+          className="bg-blue-600 text-white py-2 w-full rounded hover:bg-blue-700"
+        >
+          Upload
+        </button>
+        {status && <p className="text-center mt-2">{status}</p>}
+      </form>
+
+      {/* Pass refreshKey to PolicyList */}
+      <div>
+        <PolicyList isAdmin={true} refreshKey={refreshKey} />
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import {
   collection,
   getDocs,
@@ -10,23 +10,32 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
-export default function PolicyList({ isAdmin = false }) {
+export default function PolicyList({isAdmin = false, refreshKey}) {
   const [policies, setPolicies] = useState([]);
   const [filteredPolicies, setFilteredPolicies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPolicy, setEditingPolicy] = useState(null);
   const [editedData, setEditedData] = useState({ name: "", attribute: "" });
+  const [user, setUser] = useState(null);
 
-  // Pagination state
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const policiesPerPage = 10;
 
-  // 🔹 Fetch policies from Firestore
+  // Track logged-in user
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Fetch policies
   useEffect(() => {
     async function fetchPolicies() {
       try {
-        const q = query(collection(db, "test"), orderBy("uploadedAt", "desc"));
+        const q = query(collection(db, "policies"), orderBy("uploadedAt", "desc"));
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -41,9 +50,9 @@ export default function PolicyList({ isAdmin = false }) {
       }
     }
     fetchPolicies();
-  }, []);
+  }, [refreshKey]); 
 
-  // 🔍 Filter policies based on search term
+  // Filter
   useEffect(() => {
     const term = searchTerm.toLowerCase();
     const filtered = policies.filter(
@@ -52,37 +61,41 @@ export default function PolicyList({ isAdmin = false }) {
         p.attribute?.toLowerCase().includes(term)
     );
     setFilteredPolicies(filtered);
-    setCurrentPage(1); // reset to first page on search
+    setCurrentPage(1);
   }, [searchTerm, policies]);
 
-  // 🗑️ Delete policy (Admin only)
+  // Delete
   const handleDelete = async (id) => {
+    if (!user) return alert("You must be logged in to delete a policy.");
     if (!window.confirm("Are you sure you want to delete this policy?")) return;
     try {
-      await deleteDoc(doc(db, "test", id));
+      await deleteDoc(doc(db, "policies", id));
       setPolicies((prev) => prev.filter((p) => p.id !== id));
       setFilteredPolicies((prev) => prev.filter((p) => p.id !== id));
+      alert("✅ Policy deleted successfully!");
     } catch (err) {
       console.error("❌ Error deleting policy:", err);
+      alert("Error deleting policy. Check permissions.");
     }
   };
 
-  // ✏️ Edit Popup Handling
+  // Edit
   const handleEdit = (policy) => {
+    if (!user) return alert("You must be logged in to edit a policy.");
     setEditingPolicy(policy);
     setEditedData({ name: policy.name, attribute: policy.attribute });
   };
 
-  // 💾 Save edit to Firestore
+  // Save edit
   const handleSaveEdit = async () => {
+    if (!user) return alert("You must be logged in to edit a policy.");
     try {
-      const policyRef = doc(db, "test", editingPolicy.id);
+      const policyRef = doc(db, "policies", editingPolicy.id);
       await updateDoc(policyRef, {
         name: editedData.name,
         attribute: editedData.attribute,
       });
 
-      // Update locally
       setPolicies((prev) =>
         prev.map((p) =>
           p.id === editingPolicy.id ? { ...p, ...editedData } : p
@@ -94,13 +107,15 @@ export default function PolicyList({ isAdmin = false }) {
         )
       );
 
+      alert("✅ Policy updated successfully!");
       setEditingPolicy(null);
     } catch (err) {
       console.error("❌ Error updating policy:", err);
+      alert("Error updating policy. Check your permissions.");
     }
   };
 
-  // 🧮 Pagination logic
+  // Pagination
   const totalPages = Math.ceil(filteredPolicies.length / policiesPerPage);
   const startIndex = (currentPage - 1) * policiesPerPage;
   const currentPolicies = filteredPolicies.slice(
@@ -125,11 +140,11 @@ export default function PolicyList({ isAdmin = false }) {
 
   return (
     <div className="min-w-full mx-auto bg-white p-6 rounded-lg shadow-md mt-10">
-      <h2 className="text-xl font-semibold mb-4 text-gray-800">
-        {isAdmin ? "Manage Policies" : "Uploaded Policies"}
+      <h2 className="text-xl font-semibold mb-4 text-gray-800 text-center">
+        {user ? "Manage Policies" : "Policies"}
       </h2>
 
-      {/* 🔍 Search Bar */}
+      {/* 🔍 Search */}
       <input
         type="text"
         placeholder="Search by name or attribute..."
@@ -139,7 +154,7 @@ export default function PolicyList({ isAdmin = false }) {
       />
 
       {currentPolicies.length === 0 ? (
-        <p className="text-gray-500">No policies found.</p>
+        <p className="text-gray-500 text-center">No policies found.</p>
       ) : (
         <ul className="divide-y divide-gray-200">
           {currentPolicies.map((policy) => (
@@ -162,7 +177,8 @@ export default function PolicyList({ isAdmin = false }) {
                   View
                 </a>
 
-                {isAdmin && (
+                {/* Only show edit/delete if logged in */}
+                {user && (
                   <>
                     <button
                       onClick={() => handleEdit(policy)}
@@ -184,17 +200,16 @@ export default function PolicyList({ isAdmin = false }) {
         </ul>
       )}
 
-      {/* 🔄 Pagination Controls */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-4 mt-6">
           <button
             onClick={goToPreviousPage}
             disabled={currentPage === 1}
-            className={`px-4 py-2 rounded-md border ${
-              currentPage === 1
+            className={`px-4 py-2 rounded-md border ${currentPage === 1
                 ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                 : "bg-white hover:bg-gray-100 text-blue-600 border-blue-300"
-            }`}
+              }`}
           >
             Previous
           </button>
@@ -206,19 +221,18 @@ export default function PolicyList({ isAdmin = false }) {
           <button
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
-            className={`px-4 py-2 rounded-md border ${
-              currentPage === totalPages
+            className={`px-4 py-2 rounded-md border ${currentPage === totalPages
                 ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                 : "bg-white hover:bg-gray-100 text-blue-600 border-blue-300"
-            }`}
+              }`}
           >
             Next
           </button>
         </div>
       )}
 
-      {/* 🪟 Edit Popup */}
-      {editingPolicy && isAdmin && (
+      {/* Edit Modal */}
+      {editingPolicy && (
         <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-40 z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
             <h3 className="text-lg font-semibold mb-4 text-gray-800">

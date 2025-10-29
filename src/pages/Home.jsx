@@ -1,5 +1,5 @@
 import PolicyList from "../components/PolicyList";
-import PolicyUpload from "../components/PolicyUpload"
+
 
 export default function Home() {
   return (
@@ -9,7 +9,7 @@ export default function Home() {
           📄 Crown Caregivers — Compliance Policy Library
         </h1>
 
-        <div className="flex justify-center">
+        <div className="flex justify-center min-w-full">
           <PolicyList />
         </div>
       </div>

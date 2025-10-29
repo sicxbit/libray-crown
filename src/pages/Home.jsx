@@ -7,10 +7,10 @@ export default function Home() {
         <img
           src='/CrownUpdated.png'
           alt="Crown logo"
-          className="w-96 h-96 object-contain mx-auto block mb-6"
+          className="w-96 h-50 object-contain mx-auto block mb-6"
         />
-        <h1 className="text-3xl font-bold text-gray-800 text-center mb-10">
-          📄 Crown Caregivers — Compliance Policy Library
+        <h1 className="text-3xl font-bold text-gray-600 text-center ">
+            Compliance Policy Library
         </h1>
 
         <div className="flex justify-center min-w-full">

@@ -15,7 +15,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// initializeFirestore once, with long-polling fallback.
 // This instance MUST be the only Firestore instance used in the app.
 const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
@@ -23,7 +22,7 @@ const db = initializeFirestore(app, {
   useFetchStreams: false,            // avoid streaming where blocked
 });
 
-// NOTE: do not create any other Firestore instance anywhere else in the code
+
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export { db };

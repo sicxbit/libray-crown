@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { uploadPolicy } from "../components/UploadPolicy";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
@@ -12,6 +12,8 @@ export default function AdminUpload() {
   const [status, setStatus] = useState("");
   const [refreshKey, setRefreshKey] = useState(0); 
   const navigate = useNavigate();
+
+  const fileInputRef = useRef(null);
 
   const handleLogout = async () => {
     try {
@@ -34,13 +36,14 @@ export default function AdminUpload() {
 
     if (result.success) {
       setStatus("✅ Uploaded!");
-      // 🔹 Trigger PolicyList to refresh
       setRefreshKey((prev) => prev + 1);
 
-      // Clear form
       setFile(null);
       setPolicyName("");
       setPolicyAttribute("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } else {
       setStatus("❌ " + result.error);
     }
@@ -81,6 +84,7 @@ export default function AdminUpload() {
           type="file"
           accept=".pdf,.docx,.txt"
           onChange={(e) => setFile(e.target.files[0])}
+          ref={fileInputRef}
           className="border p-2 w-full rounded"
         />
         <button
